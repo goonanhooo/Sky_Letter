@@ -2,30 +2,39 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Sky Letter</title>
     <style>
+        /* 1. 기본 레이아웃 초기화 */
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
         body, html {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background-color: black;
+            background-color: #000; /* 카메라 로딩 전 검은색 */
         }
 
-        /* 1. 카메라 배경 */
+        /* 2. 카메라 배경: 화면에 꽉 차게 설정 */
         #camera-bg {
             position: fixed;
-            top: 0;
-            left: 0;
+            top: 50%;
+            left: 50%;
             width: 100vw;
             height: 100vh;
-            object-fit: cover;
+            min-width: 100%; 
+            min-height: 100%;
+            object-fit: cover; /* 비율 유지하며 여백 없이 꽉 채움 */
+            transform: translate(-50%, -50%); /* 정확히 정중앙 배치 */
             z-index: -1;
         }
 
-        /* 2. 전체 컨테이너 */
+        /* 3. 전체 컨테이너 */
         #ui-layer {
             position: absolute;
             top: 0;
@@ -36,56 +45,51 @@
             flex-direction: column;
             align-items: center;
             justify-content: flex-end; 
-            padding-bottom: 60px;
+            padding-bottom: 80px;
             perspective: 1000px;
         }
 
-        /* 3. 종이 래퍼: 투명도(opacity) 애니메이션 제거 */
+        /* 4. 종이 래퍼 */
         #note-wrapper {
             position: relative;
             transform: rotateX(35deg);
             transform-origin: center bottom;
-            /* transform만 10초 동안 천천히 움직임 (opacity는 제외) */
             transition: transform 10s linear; 
             z-index: 10;
             will-change: transform;
         }
 
-        /* 4. 메모지: 작고 불투명하게 유지 */
+        /* 5. 메모지 */
         #note-area {
-            width: 200px;  /* 더 작게 조정 */
-            height: 280px; /* 더 작게 조정 */
-            background-color: rgb(255, 255, 255); /* 투명도 없는 순수 흰색 */
+            width: 200px;
+            height: 280px;
+            background-color: rgba(255, 255, 255, 0.95);
             border: 1px solid #000;
             padding: 20px;
             font-size: 16px;
             text-align: center;
             outline: none;
             resize: none;
-            box-sizing: border-box;
             display: block;
             color: #000;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3); /* 입체감을 위한 그림자 */
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
 
-        /* 5. 버튼 */
+        /* 6. 버튼 */
         #fly-btn {
             margin-top: 30px;
-            padding: 10px 25px;
+            padding: 12px 30px;
             background: white;
             border: 1px solid black;
-            font-size: 14px;
+            font-size: 15px;
             cursor: pointer;
             z-index: 20;
+            border-radius: 5px;
         }
 
-        /* 6. 날아가는 상태: 투명해지지 않고 크기만 아주 작아짐 */
+        /* 7. 날아가는 상태 */
         .is-flying {
-            /* translateY(-55vh): 화면 정중앙 근처로 이동
-               rotateX(35deg): 원래의 사다리꼴 각도 유지
-               scale(0.001): 아주 미세한 점이 될 때까지 축소 (투명해지는 대신 점이 되어 사라짐)
-            */
-            transform: translateY(-55vh) rotateX(35deg) scale(0.001) !important;
+            transform: translateY(-60vh) rotateX(35deg) scale(0.001) !important;
             pointer-events: none;
         }
     </style>
@@ -102,30 +106,40 @@
     </div>
 
     <script>
+        const video = document.getElementById('camera-bg');
+
         async function startCamera() {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: 'environment' },
+                // 해상도를 기기 규격에 최대한 맞추도록 요청
+                const constraints = {
+                    video: { 
+                        facingMode: 'environment',
+                        width: { ideal: window.innerHeight }, // 높이와 너비를 바꿔서 요청 (세로 모드 대응)
+                        height: { ideal: window.innerWidth }
+                    },
                     audio: false
-                });
-                document.getElementById('camera-bg').srcObject = stream;
+                };
+                
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = stream;
+                
+                // 일부 브라우저 강제 재생 실행
+                video.play();
+                
             } catch (err) {
-                console.error("카메라 권한 오류:", err);
+                console.error("카메라 오류:", err);
+                alert("카메라를 켤 수 없습니다. HTTPS 환경인지 확인해주세요.");
             }
         }
 
         function startFlight() {
             const wrapper = document.getElementById('note-wrapper');
             const btn = document.getElementById('fly-btn');
-            
-            // 버튼은 즉시 사라짐
             btn.style.visibility = 'hidden';
-            
-            // 종이가 날아가기 시작 (투명도 변화 없이 크기만 줄어듦)
             wrapper.classList.add('is-flying');
         }
 
-        startCamera();
+        window.addEventListener('load', startCamera);
     </script>
 </body>
 </html>
